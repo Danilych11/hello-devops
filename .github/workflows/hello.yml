@@ -1,4 +1,4 @@
-name: Hello DevOps
+name: CI/CD Pipeline
 
 on:
   push:
@@ -6,11 +6,57 @@ on:
   workflow_dispatch:
 
 jobs:
-  say-hello:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Say Hello
-        run: echo "Hello DevOps"
+      - name: Build
+        run: |
+          echo "Building the application..."
+          echo "Build completed at $(date)" > build_info.txt
+          echo "Version: 1.0.0" >> build_info.txt
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build_info.txt
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+      
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+          # Проверяем, что артефакт существует
+          if [ -f build_info.txt ]; then
+            echo "✅ Build artifact found!"
+            cat build_info.txt
+            echo "✅ All tests passed!"
+          else
+            echo "❌ Build artifact missing!"
+            exit 1
+          fi
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+      
+      - name: Deploy
+        run: |
+          echo "Deploying application..."
+          cat build_info.txt
+          echo "✅ Deployment successful!"
